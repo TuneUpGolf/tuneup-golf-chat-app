@@ -429,7 +429,8 @@ exports.updateUserLastSeen = async (userId) => {
 exports.handleUpload = async (socket, data) => {
   const updatedFileName = `${Date.now()}_${data.groupId}_${data.filename}`;
   const params = {
-    Bucket: "tuneup-club-staging",
+    // change this to according to project bucket name
+    Bucket: "tuneupgolf-chat",
     Key: updatedFileName,
     Body: data.fileData,
     ACL: 'public-read',
@@ -455,9 +456,6 @@ exports.handleUpload = async (socket, data) => {
     socket.emit(socket_constant.UPLOAD_STATUS, { success: false, message: "Upload failed" });
   }
 };
-
-
-
 
 
 function removeUserFromRoom (userId) {
