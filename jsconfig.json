@@ -1,0 +1,49 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "baseUrl": "./",
+        "paths": {
+            "@root/*": [
+                "./*"
+            ],
+            "@middleware/*": [
+                "./src/middleware/*"
+            ],
+            "@modules/*": [
+                "./src/modules/*"
+            ],
+            "@services/*": [
+                "./src/services/*"
+            ],
+            "@utils/*": [
+                "./src/utils/*"
+            ],
+            "@config/*": [
+                "./config/*"
+            ],
+            "@helper/*": [
+                "./src/helper/*"
+            ],
+            "@routes/*":[
+                "./src/routes/*"
+            ],
+            "@models/*":[
+                "./src/models/*"
+            ],
+            "@constants/*":[
+                "./src/constants/*"
+            ],
+            "@validations/*":[
+                "./src/validations/*"
+            ],
+            "@controller/*": [
+                "./src/controller/*"
+            ]
+        }
+    },
+    "exclude": [
+        "node_modules",
+        "**/node_modules/*"
+    ]
+}
