@@ -1,0 +1,41 @@
+const socket_constant = {
+  CONNECTION: "connection",
+  DISCONNECT: "disconnect",
+  JOIN: "join",
+  FILE_UPLOAD: "file",
+  FILE_MESSAGE: "fileNotify",
+  CHAT_MESSAGE: "chatMessage",
+  RECEIVED: "received",
+  TYPING: "typing",
+  NOTIFY_TYPING: "notifyTyping",
+  NOTIFY_TYPING_GLOBAL: "notifyTypingGlobal",
+  STOP_TYPING: "stopTyping",
+  NOTIFY_STOP_TYPING: "notifyStopTyping",
+  NOTIFY_STOP_TYPING_GLOBAL: "notifyStopTypingGlobal",
+  ALL_ONLINE_NOTIFY_GLOBAL: "allOnlineNotifyGlobal",
+  NOTIFY_ONLINE_USER: "notifyOnlineUser",
+  NOTIFY_UNREAD_GLOBAL: "notifyUnreadGlobal",
+  TYPING_MESSAGE: "IsTyping",
+  NOTIFY_USER_READ: "notifyUserRead",
+  WARNING: "DonotUseAbuseWords",
+
+  NEW_GROUP_CREATE: "newGroupCreated",
+
+  SOMETHING_WENT_WRONG: "somethingWentWrong",
+  DELETE_GROUP: "deleteGroup",
+  UPLOAD_IMAGE: "upload",
+  UPLOAD_STATUS: "uploadStatus",
+  CHAT_REACTION: "chatReaction",
+  CHAT_REACTION_RESULT: "chatReactionResult",
+  // CHAT_REACTION_FAILED:"chatReactionFailed",
+  GROUP_PROFILE_STATUS: "groupProfileStatus",
+  UPDATE_USER: "updateUser",
+  UPDATE_GROUP: "updateGroup",
+  CHAT_REACTION_REMOVE: 'chatReactionRemove',
+  ONLINE_USER_UPDATE: "updateOnlineUser",
+  LEAVE_ROOM: "leaveRoom",
+  NOTIFY_UNREAD_GLOBAL_COUNT: "Notify unread global count",
+
+  DELETE_MESSAGE: "messageDeleted"
+};
+module.exports = { socket_constant };
