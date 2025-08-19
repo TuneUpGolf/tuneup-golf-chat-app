@@ -14,7 +14,7 @@ steps:
       sudo apt-get install gridsite-clients
 
       # Create local mirror of Azure DevOps repository
-      git clone --bare https://${AZURE_GIT_USERNAME}:$(urlencode ${AZURE_GIT_PASSWORD})@${AZURE_REPO_URL} repo-mirror
+      git clone --mirror https://${AZURE_GIT_USERNAME}:$(urlencode ${AZURE_GIT_PASSWORD})@${AZURE_REPO_URL} repo-mirror
       
       # Sync GITHUB repository
       cd repo-mirror
