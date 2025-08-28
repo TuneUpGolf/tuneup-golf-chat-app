@@ -3,15 +3,13 @@ const joi = require("joi");
 exports.createUser = joi.object({
 
   userId: joi.string(),
-  name: joi
-    .string()
-    .regex(/^[a-zA-Z]+(?: [a-zA-Z]+)*$/)
+  name: joi.string()
+    .regex(/^[\p{L}\p{N}]+(?: [\p{L}\p{N}]+)*$/u)
     .required(),
 
   email: joi
     .string()
-    .regex(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
-    .email()
+    .email({ tlds: { allow: false } }) // allows unicode + modern TLDs
     .required(),
 
   country: joi
