@@ -31,7 +31,8 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // API routes
-app.use("/brainvire-chat-base-app/api/v1", require("@routes/api/v1")(router));
+app.use("/chat-app/api/v1", require("@routes/api/v1")(router));
+
 
 //For uncaughtException handling
 process.on('uncaughtException', (error) => {
