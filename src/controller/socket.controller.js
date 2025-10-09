@@ -268,6 +268,8 @@ exports.chatMessage = ({
             (id) => !onlineUsers.includes(id)
           );
 
+          console.log(offlineUserIds);
+
           for (const offlineUserId of offlineUserIds) {
             await fetch("https://tuneup.golf/api/notify-message", {
               method: "POST",
