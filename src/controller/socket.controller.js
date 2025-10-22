@@ -405,6 +405,7 @@ exports.chatMessage = ({
 
         // 🔹 Notify ALL group members (online and offline)
         for (const userId of allUserIds) {
+          if (userId.toString() === senderId.toString()) continue;
           const receiver = await User.findOne({ _id: userId });
           if (!receiver) {
             console.warn(`Receiver not found: ${userId}`);
