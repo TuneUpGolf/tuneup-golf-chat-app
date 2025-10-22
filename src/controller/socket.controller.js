@@ -418,7 +418,7 @@ exports.chatMessage = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              tenant_id: groups.tenant_id,
+               tenant_id: Array.isArray(sender.tenant_id) ? sender.tenant_id[0] : sender.tenant_id, // ✅ FIXED
               sender_id: sender.userId,
               sender_email: sender.email,
               receiver_id: receiver.userId,
