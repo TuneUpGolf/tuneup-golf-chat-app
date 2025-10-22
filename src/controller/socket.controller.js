@@ -173,6 +173,168 @@ exports.join = async (data, socket) => {
  * @param {string} params.userName - The name of the message sender.
  * @param {string} params.fileUrl - The URL of any file attached to the message.
  */
+// exports.chatMessage = ({
+//   socket,
+//   msg,
+//   senderId,
+//   metadata,
+//   type,
+//   groupId,
+//   socketUsers,
+//   userName,
+//   fileUrl,
+//   quoteMsgId,
+//   parentId,
+//   parentMessage,
+// }) => {
+//   try {
+//     console.log(/gr/, groupId);
+
+//     // Find the group based on its name and sort it by createdAt in descending order
+//     Group.findById(groupId)
+//       .sort({ createdAt: -1 })
+//       .then(async (groups) => {
+//         console.log(/gr/, groups);
+
+//         // Get a list of online users in the group, including the sender
+//         const onlineUsers = getOnlineUsers(groupId, senderId);
+//         onlineUsers.push(senderId);
+//         // Update the 'updatedAt' timestamp for the group
+//         //Update the group's last activity time.
+//         groups.updatedAt = moment.utc(new Date());
+//         groups.save();
+
+//         if (msg !== "") {
+//           console.log("Checking Abusive Words:", msg);
+
+//           // Check for profanity
+//           if (leoProfanity.check(msg)) {
+//             socket.emit(socket_constant.WARNING, {
+//               message: "Warning: Please avoid using abusive words!",
+//               msg,
+//             });
+//             console.log("IS BAD WORd");
+//             return;
+//           }
+
+//           const readUserIds = onlineUsers.filter((ids) =>
+//             groups.groupMembers.includes(ids)
+//           );
+//           // Create a 'messageData' object with various message details
+//           //Build a message object with all required metadata.
+//           const messageData = {
+//             groupId: groups._id,
+//             message: msg,
+//             groupName: groups.groupName,
+//             senderId,
+//             type,
+//             readUserIds,
+//             userName,
+//             fileUrl,
+//             isFile: false,
+//             sendTo: groups.groupMembers,
+//             parentId: null,
+//             metadata,
+//           };
+//           //If the message is a reply (has parentId), include it.
+//           if (parentId && mongoose.Types.ObjectId.isValid(parentId)) {
+//             messageData.parentId = mongoose.Types.ObjectId(parentId);
+//           }
+//           console.log(/messageData/, messageData);
+
+//           // Save Message + Update State
+//           // Create a new chat message using 'messageData'
+//           const chatMessage = new Chat(messageData);
+
+//           // Add additional fields to 'messageData'
+//           messageData.createdAt = groups.updatedAt;
+//           messageData.emailNotified = chatMessage.emailNotified;
+//           messageData.isBroadcast = chatMessage.isBroadcast;
+//           messageData.isEmailMessage = chatMessage.isEmailMessage;
+//           messageData.updatedAt = groups.updatedAt;
+//           messageData.__v = groups.__v;
+//           messageData._id = chatMessage._id;
+
+//           groups.groupMembers.forEach((userId) => {
+//             // onlineAdmins = onlineAdmins.filter(adminId => adminId !== userId);
+//           });
+//           //increase unreadCount for users if not read
+//           await setChatUnreadCount(groups.groupMembers, groupId, readUserIds);
+
+//           // Save the chat message and update the group's chat message data
+//           const chatMessageObj = await chatMessage.save();
+
+//           const offlineUserIds = groups.groupMembers.filter(
+//             (id) => !onlineUsers.includes(id)
+//           );
+
+//           console.log(offlineUserIds);
+
+//           for (const offlineUserId of offlineUserIds) {
+//             // Find sender and receiver in your User model
+//             const sender = await User.findOne({ _id: senderId }); // or however your model is structured
+//             const receiver = await User.findOne({ _id: offlineUserId });
+
+//             if (!sender || !receiver) {
+//               console.log("test 2");
+
+//               console.log(
+//                 `User not found for sender: ${senderId} or receiver: ${offlineUserId}`
+//               );
+//               continue; // skip this iteration if either user is missing
+//             }
+//             console.log("test 1");
+
+//             // Send the notification with user.userId instead of _id
+//             await fetch("https://tuneup.golf/api/notify-message", {
+//               method: "POST",
+//               headers: { "Content-Type": "application/json" },
+//               body: JSON.stringify({
+//                 tenant_id: groups.tenant_id,
+//                 sender_id: sender.userId, // from user model
+//                 receiver_id: receiver.userId, // from user model
+//                 message: msg,
+//                 group_id: groupId,
+//                 type: type || "chat",
+//                 sent_at: new Date().toISOString(),
+//               }),
+//             });
+//           }
+
+//           await groupChatMessageUpdateFind(groups._id, msg);
+
+//           // Broadcast the message to everyone in the group (except sender).
+//           // Emit the message back to sender (self-confirmation).
+//           messageData.parentMessage = parentMessage;
+//           chatMessageObj._doc.parentMessage = parentMessage;
+
+//           //Funtion for sending push notification
+//           // prepareAndSendPushNotification({ senderId, groups, readUserIds, type, msg, messageData });
+//           console.log(/RECEIVED EMIT/, groupId);
+//           socket.broadcast
+//             .in(groupId)
+//             .emit(socket_constant.RECEIVED, messageData);
+//           socket.emit(socket_constant.RECEIVED, chatMessageObj);
+//           // Notify unread messages to group members
+//           notifyUnreadAllGroup(groups, {
+//             senderId,
+//             socketUsers,
+//             onlineUsers,
+//             socket,
+//             msg,
+//             userName,
+//             type,
+//             messageData,
+//           });
+//           // Log the message in the message log
+//           logs.messageLog(groupId, senderId, msg);
+//         }
+//       });
+//   } catch (error) {
+//     socket.emit(socket_constant.SOMETHING_WENT_WRONG, error);
+//   }
+// };
+
 exports.chatMessage = ({
   socket,
   msg,
@@ -188,152 +350,113 @@ exports.chatMessage = ({
   parentMessage,
 }) => {
   try {
-    console.log(/gr/, groupId);
-
-    // Find the group based on its name and sort it by createdAt in descending order
     Group.findById(groupId)
       .sort({ createdAt: -1 })
       .then(async (groups) => {
-        console.log(/gr/, groups);
-
-        // Get a list of online users in the group, including the sender
         const onlineUsers = getOnlineUsers(groupId, senderId);
         onlineUsers.push(senderId);
-        // Update the 'updatedAt' timestamp for the group
-        //Update the group's last activity time.
+
         groups.updatedAt = moment.utc(new Date());
-        groups.save();
+        await groups.save();
 
-        if (msg !== "") {
-          console.log("Checking Abusive Words:", msg);
+        if (!msg) return;
 
-          // Check for profanity
-          if (leoProfanity.check(msg)) {
-            socket.emit(socket_constant.WARNING, {
-              message: "Warning: Please avoid using abusive words!",
-              msg,
-            });
-            console.log("IS BAD WORd");
-            return;
-          }
-
-          const readUserIds = onlineUsers.filter((ids) =>
-            groups.groupMembers.includes(ids)
-          );
-          // Create a 'messageData' object with various message details
-          //Build a message object with all required metadata.
-          const messageData = {
-            groupId: groups._id,
-            message: msg,
-            groupName: groups.groupName,
-            senderId,
-            type,
-            readUserIds,
-            userName,
-            fileUrl,
-            isFile: false,
-            sendTo: groups.groupMembers,
-            parentId: null,
-            metadata,
-          };
-          //If the message is a reply (has parentId), include it.
-          if (parentId && mongoose.Types.ObjectId.isValid(parentId)) {
-            messageData.parentId = mongoose.Types.ObjectId(parentId);
-          }
-          console.log(/messageData/, messageData);
-
-          // Save Message + Update State
-          // Create a new chat message using 'messageData'
-          const chatMessage = new Chat(messageData);
-
-          // Add additional fields to 'messageData'
-          messageData.createdAt = groups.updatedAt;
-          messageData.emailNotified = chatMessage.emailNotified;
-          messageData.isBroadcast = chatMessage.isBroadcast;
-          messageData.isEmailMessage = chatMessage.isEmailMessage;
-          messageData.updatedAt = groups.updatedAt;
-          messageData.__v = groups.__v;
-          messageData._id = chatMessage._id;
-
-          groups.groupMembers.forEach((userId) => {
-            // onlineAdmins = onlineAdmins.filter(adminId => adminId !== userId);
-          });
-          //increase unreadCount for users if not read
-          await setChatUnreadCount(groups.groupMembers, groupId, readUserIds);
-
-          // Save the chat message and update the group's chat message data
-          const chatMessageObj = await chatMessage.save();
-
-          const offlineUserIds = groups.groupMembers.filter(
-            (id) => !onlineUsers.includes(id)
-          );
-
-          console.log(offlineUserIds);
-
-          for (const offlineUserId of offlineUserIds) {
-            // Find sender and receiver in your User model
-            const sender = await User.findOne({ _id: senderId }); // or however your model is structured
-            const receiver = await User.findOne({ _id: offlineUserId });
-
-            if (!sender || !receiver) {
-              console.log("test 2");
-
-              console.log(
-                `User not found for sender: ${senderId} or receiver: ${offlineUserId}`
-              );
-              continue; // skip this iteration if either user is missing
-            }
-            console.log("test 1");
-
-            // Send the notification with user.userId instead of _id
-            await fetch("https://tuneup.golf/api/notify-message", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                tenant_id: groups.tenant_id,
-                sender_id: sender.userId, // from user model
-                receiver_id: receiver.userId, // from user model
-                message: msg,
-                group_id: groupId,
-                type: type || "chat",
-                sent_at: new Date().toISOString(),
-              }),
-            });
-          }
-
-          await groupChatMessageUpdateFind(groups._id, msg);
-
-          // Broadcast the message to everyone in the group (except sender).
-          // Emit the message back to sender (self-confirmation).
-          messageData.parentMessage = parentMessage;
-          chatMessageObj._doc.parentMessage = parentMessage;
-
-          //Funtion for sending push notification
-          // prepareAndSendPushNotification({ senderId, groups, readUserIds, type, msg, messageData });
-          console.log(/RECEIVED EMIT/, groupId);
-          socket.broadcast
-            .in(groupId)
-            .emit(socket_constant.RECEIVED, messageData);
-          socket.emit(socket_constant.RECEIVED, chatMessageObj);
-          // Notify unread messages to group members
-          notifyUnreadAllGroup(groups, {
-            senderId,
-            socketUsers,
-            onlineUsers,
-            socket,
+        if (leoProfanity.check(msg)) {
+          socket.emit(socket_constant.WARNING, {
+            message: "Warning: Please avoid using abusive words!",
             msg,
-            userName,
-            type,
-            messageData,
           });
-          // Log the message in the message log
-          logs.messageLog(groupId, senderId, msg);
+          return;
         }
+
+        const readUserIds = onlineUsers.filter((id) =>
+          groups.groupMembers.includes(id)
+        );
+
+        const messageData = {
+          groupId: groups._id,
+          message: msg,
+          groupName: groups.groupName,
+          senderId,
+          type,
+          readUserIds,
+          userName,
+          fileUrl,
+          isFile: false,
+          sendTo: groups.groupMembers,
+          parentId: parentId && mongoose.Types.ObjectId.isValid(parentId)
+            ? mongoose.Types.ObjectId(parentId)
+            : null,
+          metadata,
+        };
+
+        const chatMessage = new Chat(messageData);
+        const chatMessageObj = await chatMessage.save();
+
+        await setChatUnreadCount(groups.groupMembers, groupId, readUserIds);
+
+        const allUserIds = groups.groupMembers;
+        const sender = await User.findOne({ _id: senderId });
+
+        if (!sender) {
+          console.warn(`Sender not found: ${senderId}`);
+          return;
+        }
+
+        // 🔹 Notify ALL group members (online and offline)
+        for (const userId of allUserIds) {
+          const receiver = await User.findOne({ _id: userId });
+          if (!receiver) {
+            console.warn(`Receiver not found: ${userId}`);
+            continue;
+          }
+
+          const isOnline = onlineUsers.includes(userId);
+
+          await fetch("https://tuneup.golf/api/notify-message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              tenant_id: groups.tenant_id,
+              sender_id: sender.userId,
+              sender_email: sender.email,
+              receiver_id: receiver.userId,
+              receiver_email: receiver.email,
+              message: msg,
+              group_id: groupId,
+              type: type || "chat",
+              status: isOnline ? "online" : "offline", // ✅ Added status flag
+              sent_at: new Date().toISOString(),
+            }),
+          });
+        }
+
+        await groupChatMessageUpdateFind(groups._id, msg);
+
+        messageData.parentMessage = parentMessage;
+        chatMessageObj._doc.parentMessage = parentMessage;
+
+        socket.broadcast.in(groupId).emit(socket_constant.RECEIVED, messageData);
+        socket.emit(socket_constant.RECEIVED, chatMessageObj);
+
+        notifyUnreadAllGroup(groups, {
+          senderId,
+          socketUsers,
+          onlineUsers,
+          socket,
+          msg,
+          userName,
+          type,
+          messageData,
+        });
+
+        logs.messageLog(groupId, senderId, msg);
       });
   } catch (error) {
     socket.emit(socket_constant.SOMETHING_WENT_WRONG, error);
   }
 };
+
 
 /**
  * Updates the unread message count for each group member in Redis.
