@@ -276,11 +276,14 @@ exports.chatMessage = ({
             const receiver = await User.findOne({ _id: offlineUserId });
 
             if (!sender || !receiver) {
+              console.log("test 2");
+
               console.log(
                 `User not found for sender: ${senderId} or receiver: ${offlineUserId}`
               );
               continue; // skip this iteration if either user is missing
             }
+            console.log("test 1");
 
             // Send the notification with user.userId instead of _id
             await fetch("https://tuneup.golf/api/notify-message", {
