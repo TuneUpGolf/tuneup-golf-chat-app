@@ -276,7 +276,7 @@ exports.chatMessage = ({
             const receiver = await User.findOne({ _id: offlineUserId });
 
             if (!sender || !receiver) {
-              console.warn(
+              console.log(
                 `User not found for sender: ${senderId} or receiver: ${offlineUserId}`
               );
               continue; // skip this iteration if either user is missing
