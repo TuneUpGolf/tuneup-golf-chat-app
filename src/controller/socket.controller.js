@@ -271,13 +271,25 @@ exports.chatMessage = ({
           console.log(offlineUserIds);
 
           for (const offlineUserId of offlineUserIds) {
+            // Find sender and receiver in your User model
+            const sender = await User.findOne({ _id: senderId }); // or however your model is structured
+            const receiver = await User.findOne({ _id: offlineUserId });
+
+            if (!sender || !receiver) {
+              console.warn(
+                `User not found for sender: ${senderId} or receiver: ${offlineUserId}`
+              );
+              continue; // skip this iteration if either user is missing
+            }
+
+            // Send the notification with user.userId instead of _id
             await fetch("https://tuneup.golf/api/notify-message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 tenant_id: groups.tenant_id,
-                sender_id: senderId,
-                receiver_id: offlineUserId,
+                sender_id: sender.userId, // from user model
+                receiver_id: receiver.userId, // from user model
                 message: msg,
                 group_id: groupId,
                 type: type || "chat",
