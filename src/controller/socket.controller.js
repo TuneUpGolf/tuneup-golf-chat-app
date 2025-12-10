@@ -384,9 +384,10 @@ exports.chatMessage = ({
           fileUrl,
           isFile: false,
           sendTo: groups.groupMembers,
-          parentId: parentId && mongoose.Types.ObjectId.isValid(parentId)
-            ? mongoose.Types.ObjectId(parentId)
-            : null,
+          parentId:
+            parentId && mongoose.Types.ObjectId.isValid(parentId)
+              ? mongoose.Types.ObjectId(parentId)
+              : null,
           metadata,
         };
 
@@ -418,7 +419,9 @@ exports.chatMessage = ({
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-               tenant_id: Array.isArray(sender.tenant_id) ? sender.tenant_id[0] : sender.tenant_id, // ✅ FIXED
+              tenant_id: Array.isArray(sender.tenant_id)
+                ? sender.tenant_id[0]
+                : sender.tenant_id, // ✅ FIXED
               sender_id: sender.userId,
               sender_email: sender.email,
               receiver_id: receiver.userId,
@@ -437,7 +440,9 @@ exports.chatMessage = ({
         messageData.parentMessage = parentMessage;
         chatMessageObj._doc.parentMessage = parentMessage;
 
-        socket.broadcast.in(groupId).emit(socket_constant.RECEIVED, messageData);
+        socket.broadcast
+          .in(groupId)
+          .emit(socket_constant.RECEIVED, messageData);
         socket.emit(socket_constant.RECEIVED, chatMessageObj);
 
         notifyUnreadAllGroup(groups, {
@@ -457,7 +462,6 @@ exports.chatMessage = ({
     socket.emit(socket_constant.SOMETHING_WENT_WRONG, error);
   }
 };
-
 
 /**
  * Updates the unread message count for each group member in Redis.
@@ -621,72 +625,140 @@ exports.handleUpload = async (socket, data) => {
   }
 };
 
+// function removeUserFromRoom(userId) {
+//   for (const key in users) {
+//     if (key.startsWith(userId + "_")) {
+//       delete users[key];
+//     }
+//   }
+// }
+
 function removeUserFromRoom(userId) {
-  for (const key in users) {
-    if (key.startsWith(userId + "_")) {
-      delete users[key];
+  try {
+    if (!userId) return;
+
+    for (const key in users) {
+      if (key.startsWith(userId + "_")) {
+        delete users[key];
+        console.log(`Removed user ${userId} from room tracking: ${key}`);
+      }
     }
+  } catch (error) {
+    console.error("Error in removeUserFromRoom:", error);
   }
 }
 
+// exports.disconnect = async (socket, socketUsers) => {
+//   try {
+//     const { senderId } = socket.handshake.query;
+//     removeUserFromRoom(senderId);
+
+//     await redisClient.sRem("allOnlineUsers", socket.handshake.query.senderId);
+//     const onlineUsers = await redisClient.sMembers("allOnlineUsers");
+//     if (socket.handshake.query.senderId) {
+//       await redisClient.sRem(
+//         user_constants.ALLONLINEADMIN,
+//         socket.handshake.query.senderId
+//       );
+//       const usersCircle = await findOtherUserIds(
+//         socket.handshake.query.senderId
+//       );
+//       usersCircle.forEach((room) => {
+//         socket.to(room).emit(socket_constant.ONLINE_USER_UPDATE, usersCircle); // Emit to rooms except the sender
+//       });
+//       // Remove the user from the 'users' object using the senderId and groupName as the key
+//       delete users[
+//         socket.handshake.query.senderId + "_" + socket.handshake.query.groupId
+//       ];
+//       const userData = [];
+//       // Iterate through 'users' object and extract user IDs
+//       Object.keys(users).forEach((key) => {
+//         const id = key.split("_");
+//         userData.push(id[0]);
+//       });
+
+//       // If the user is not found in 'userData', remove them from 'socketUsers'
+//       if (!userData.includes(socket.handshake.query.senderId)) {
+//         delete socketUsers[socket.handshake.query.senderId];
+//       }
+//     } else {
+//       // Remove the group from the 'users' object using the groupName as the key
+//       delete users[socket.handshake.query.groupId];
+//     }
+//     const updatedUser = await changeUserStatus(socket.handshake.query.senderId);
+//     // Remove the saved socket from the 'users' object
+//     delete users[
+//       socket.handshake.query.senderId + "_" + socket.handshake.query.groupId
+//     ];
+//     // Broadcast a notification to all connected clients about online users
+//     const usersCircle = await findOtherUserIds(socket.handshake.query.senderId);
+//     usersCircle.forEach((room) => {
+//       global.globalSocket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
+//         users: onlineUsers,
+//         updatedUser,
+//       });
+//     });
+
+//     // Log the disconnection of the user
+//     logs.disconnectLog(
+//       socket.handshake.query.groupId,
+//       socket.handshake.query.senderId
+//     );
+//   } catch (error) {
+//     logger.error(`[socket disconnect] [Error] => ${error}`);
+//   }
+// };
+
 exports.disconnect = async (socket, socketUsers) => {
   try {
-    const { senderId } = socket.handshake.query;
+    const { senderId, groupId } = socket.handshake.query || {};
+
+    if (!senderId) {
+      console.warn("No senderId found in socket handshake");
+      return;
+    }
+
+    console.log(`Disconnecting user: ${senderId}`);
+
+    // Remove user from room tracking
     removeUserFromRoom(senderId);
 
-    await redisClient.sRem("allOnlineUsers", socket.handshake.query.senderId);
-    const onlineUsers = await redisClient.sMembers("allOnlineUsers");
-    if (socket.handshake.query.senderId) {
-      await redisClient.sRem(
-        user_constants.ALLONLINEADMIN,
-        socket.handshake.query.senderId
-      );
-      const usersCircle = await findOtherUserIds(
-        socket.handshake.query.senderId
-      );
-      usersCircle.forEach((room) => {
-        socket.to(room).emit(socket_constant.ONLINE_USER_UPDATE, usersCircle); // Emit to rooms except the sender
-      });
-      // Remove the user from the 'users' object using the senderId and groupName as the key
-      delete users[
-        socket.handshake.query.senderId + "_" + socket.handshake.query.groupId
-      ];
-      const userData = [];
-      // Iterate through 'users' object and extract user IDs
-      Object.keys(users).forEach((key) => {
-        const id = key.split("_");
-        userData.push(id[0]);
-      });
-
-      // If the user is not found in 'userData', remove them from 'socketUsers'
-      if (!userData.includes(socket.handshake.query.senderId)) {
-        delete socketUsers[socket.handshake.query.senderId];
-      }
+    // Remove from Redis with validation
+    if (redisClient && typeof redisClient.sRem === "function") {
+      await redisClient.sRem("allOnlineUsers", senderId);
     } else {
-      // Remove the group from the 'users' object using the groupName as the key
-      delete users[socket.handshake.query.groupId];
+      console.error("Redis client not available or sRem not a function");
     }
-    const updatedUser = await changeUserStatus(socket.handshake.query.senderId);
-    // Remove the saved socket from the 'users' object
-    delete users[
-      socket.handshake.query.senderId + "_" + socket.handshake.query.groupId
-    ];
-    // Broadcast a notification to all connected clients about online users
-    const usersCircle = await findOtherUserIds(socket.handshake.query.senderId);
-    usersCircle.forEach((room) => {
-      global.globalSocket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
-        users: onlineUsers,
-        updatedUser,
-      });
-    });
 
-    // Log the disconnection of the user
-    logs.disconnectLog(
-      socket.handshake.query.groupId,
-      socket.handshake.query.senderId
-    );
+    const onlineUsers = await redisClient.sMembers("allOnlineUsers");
+
+    if (senderId) {
+      // Remove from socketUsers tracking
+      delete socketUsers[senderId];
+
+      // Clean up any room associations
+      for (const key in users) {
+        if (key.startsWith(senderId + "_")) {
+          delete users[key];
+        }
+      }
+
+      const usersCircle = await findOtherUserIds(senderId);
+
+      // Notify other users
+      usersCircle.forEach((room) => {
+        global.globalSocket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
+          users: socketUsers,
+          onlineUsers: onlineUsers,
+        });
+      });
+    }
+
+    // Log the disconnection
+    logs.disconnectLog(groupId, senderId);
   } catch (error) {
-    logger.error(`[socket disconnect] [Error] => ${error}`);
+    console.error(`[socket disconnect] [Error Details] =>`, error);
+    logger.error(`[socket disconnect] [Error] => ${error.message || error}`);
   }
 };
 
@@ -993,4 +1065,3 @@ const notifyUpload = async (socket, data, updatedFileName) => {
     );
   }
 };
-
