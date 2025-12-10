@@ -994,35 +994,3 @@ const notifyUpload = async (socket, data, updatedFileName) => {
   }
 };
 
-socket.on('manual_logout', async (data) => {
-    try {
-        const { senderId } = data;
-        console.log(`Manual logout for user: ${senderId}`);
-        
-        // Remove from tracking
-        delete socketUsers[senderId];
-        await redisClient.sRem("allOnlineUsers", senderId);
-        
-        // Clean up room associations
-        for (const key in users) {
-            if (key.startsWith(senderId + "_")) {
-                delete users[key];
-            }
-        }
-        
-        // Notify other users this user went offline
-        const usersCircle = await findOtherUserIds(senderId);
-        const onlineUsers = await redisClient.sMembers("allOnlineUsers");
-        
-        usersCircle.forEach((room) => {
-            socket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
-                users: socketUsers,  // Send updated socketUsers without this user
-                onlineUsers: onlineUsers // Or send Redis online users
-            });
-        });
-        
-        console.log(`✅ User ${senderId} manually logged out`);
-    } catch (error) {
-        console.error("Error in manual_logout:", error);
-    }
-});
