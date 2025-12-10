@@ -16,10 +16,16 @@ module.exports = function (socket) {
   socket.use(verifyJWT);
   console.log("Socket connection established");
 
-   socket.on("manual_logout", async (data) => {
+  socket.on("manual_logout", async (data) => {
     try {
-      const { senderId } = data;
-      console.log(`Manual logout for user: ${senderId}`);
+   
+      const { senderId } = data || {};
+      const actualSenderId = senderId || socket.senderId;
+      
+      if (!actualSenderId) {
+        console.error("No senderId found for manual_logout");
+        return;
+      }
 
       // Remove from tracking - use the socketUsers from THIS file
       delete socketUsers[senderId];
@@ -27,7 +33,7 @@ module.exports = function (socket) {
 
       // Get the users object from socketController
       const socketController = require("@controller/socket.controller");
-      
+
       // Clean up room associations in the users object (if exported)
       // Note: users object is in socket.controller.js, we need to access it
       // You might need to export it or use a shared module
@@ -45,16 +51,42 @@ module.exports = function (socket) {
 
       // Force disconnect this socket
       socket.disconnect();
-      
+
       console.log(`✅ User ${senderId} manually logged out`);
     } catch (error) {
       console.error("Error in manual_logout:", error);
     }
   });
 
+  socket.on(socket_constant.DISCONNECT, async (prevChatGrp) => {
+    try {
+      const senderId = socket.senderId || socket.handshake.query?.senderId;
+      
+      if (!senderId) {
+        console.warn("No senderId found for disconnect event");
+        return;
+      }
+      
+      console.log(`Disconnecting user: ${senderId}`);
+      
+      await socketController.disconnect(socket, socketUsers, prevChatGrp);
+      await socketController.updateUserLastSeen(senderId);
+    } catch (error) {
+      console.error("Error in disconnect handler:", error);
+    }
+  });
+
   /* socket connection establishing */
   socket.on(socket_constant.CONNECTION, (socket) => {
-    logs.connectLog(socket.handshake.query.senderId);
+    const { senderId } = socket.handshake.query || {};
+
+    if (senderId) {
+      // Store senderId on the socket object for later use
+      socket.senderId = senderId;
+      console.log(`User ${senderId} connected, stored on socket object`);
+    }
+
+    logs.connectLog(senderId);
     // Initialise the connection
     const { groupId, status } = socket.handshake.query;
     socketController.connection({ socket, socketUsers, groupId, status });
