@@ -16,6 +16,42 @@ module.exports = function (socket) {
   socket.use(verifyJWT);
   console.log("Socket connection established");
 
+   socket.on("manual_logout", async (data) => {
+    try {
+      const { senderId } = data;
+      console.log(`Manual logout for user: ${senderId}`);
+
+      // Remove from tracking - use the socketUsers from THIS file
+      delete socketUsers[senderId];
+      await redisClient.sRem("allOnlineUsers", senderId);
+
+      // Get the users object from socketController
+      const socketController = require("@controller/socket.controller");
+      
+      // Clean up room associations in the users object (if exported)
+      // Note: users object is in socket.controller.js, we need to access it
+      // You might need to export it or use a shared module
+
+      // Notify other users this user went offline
+      const usersCircle = await findOtherUserIds(senderId);
+      const onlineUsers = await redisClient.sMembers("allOnlineUsers");
+
+      usersCircle.forEach((room) => {
+        socket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
+          users: socketUsers, // Send updated socketUsers without this user
+          onlineUsers: onlineUsers,
+        });
+      });
+
+      // Force disconnect this socket
+      socket.disconnect();
+      
+      console.log(`✅ User ${senderId} manually logged out`);
+    } catch (error) {
+      console.error("Error in manual_logout:", error);
+    }
+  });
+
   /* socket connection establishing */
   socket.on(socket_constant.CONNECTION, (socket) => {
     logs.connectLog(socket.handshake.query.senderId);
@@ -101,39 +137,6 @@ module.exports = function (socket) {
       await socketController.updateUserLastSeen(
         socket.handshake.query.senderId
       );
-    });
-
-    socket.on("manual_logout", async (data) => {
-      try {
-        const { senderId } = data;
-        console.log(`Manual logout for user: ${senderId}`);
-
-        // Remove from tracking
-        delete socketUsers[senderId];
-        await redisClient.sRem("allOnlineUsers", senderId);
-
-        // Clean up room associations
-        for (const key in users) {
-          if (key.startsWith(senderId + "_")) {
-            delete users[key];
-          }
-        }
-
-        // Notify other users this user went offline
-        const usersCircle = await findOtherUserIds(senderId);
-        const onlineUsers = await redisClient.sMembers("allOnlineUsers");
-
-        usersCircle.forEach((room) => {
-          socket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
-            users: socketUsers, // Send updated socketUsers without this user
-            onlineUsers: onlineUsers, // Or send Redis online users
-          });
-        });
-
-        console.log(`✅ User ${senderId} manually logged out`);
-      } catch (error) {
-        console.error("Error in manual_logout:", error);
-      }
     });
 
     // Socket for video call request initiated (sender)

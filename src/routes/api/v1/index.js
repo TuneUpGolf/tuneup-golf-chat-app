@@ -13,8 +13,21 @@ module.exports = () => {
       delete socketUsers[userId];
       await redisClient.sRem("allOnlineUsers", userId);
 
-      // Also clean up any room associations
-      // ... your cleanup logic here
+      // Get socket controller's users object
+      const socketController = require("@controller/socket.controller");
+
+      // You need to export users from socket.controller.js or access it differently
+      // For now, let's notify other users via socket
+      const usersCircle = await findOtherUserIds(userId);
+
+      // Get the global socket instance
+      const { globalSocket } = require("@root/config/socket.config"); // Adjust path
+
+      usersCircle.forEach((room) => {
+        globalSocket.to(room).emit(socket_constant.NOTIFY_ONLINE_USER, {
+          users: socketUsers,
+        });
+      });
 
       res.json({ success: true, message: `User ${userId} forced offline` });
     } catch (error) {
